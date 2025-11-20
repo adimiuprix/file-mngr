@@ -6,6 +6,14 @@ export interface FileItem {
     mtime: number
 }
 
+export interface ProgressBarProps {
+  progress: number;
+  isVisible: boolean;
+  operationType: 'upload' | 'delete';
+  fileName?: string;
+  message?: string;
+}
+
 export interface ToolbarProps {
   onToggleSidebar: () => void
   onGoUp: () => void
@@ -40,4 +48,75 @@ export interface ContextMenuProps {
 
 export interface DropZoneProps {
   isVisible: boolean
+}
+
+export interface DeleteConfirmModalProps {
+  isOpen: boolean
+  selectedCount: number
+  selectedItems: number[]
+  files: FileItem[]
+  onClose: () => void
+  onConfirm: () => void
+}
+
+export interface CopyModalProps {
+  isOpen: boolean
+  path: string
+  newName: string
+  onClose: () => void
+  onPathChange: (value: string) => void
+  onNewNameChange: (value: string) => void
+  onCopy: () => void
+}
+
+export interface MoveModalProps {
+  isOpen: boolean
+  path: string
+  onClose: () => void
+  onPathChange: (value: string) => void
+  onMove: () => void
+}
+
+export interface RenameModalProps {
+  isOpen: boolean
+  name: string
+  onClose: () => void
+  onNameChange: (value: string) => void
+  onRename: () => void
+}
+
+export interface EditModalProps {
+  isOpen: boolean
+  title: string
+  content: string
+  onClose: () => void
+  onContentChange: (value: string) => void
+  onSave: () => void
+}
+
+export interface NewFileModalProps {
+  isOpen: boolean
+  fileName: string
+  fileContent: string
+  onClose: () => void
+  onFileNameChange: (value: string) => void
+  onFileContentChange: (value: string) => void
+  onCreate: () => void
+}
+
+export interface FolderModalProps {
+  isOpen: boolean
+  folderName: string
+  onClose: () => void
+  onFolderNameChange: (value: string) => void
+  onCreate: () => void
+}
+
+export interface UploadModalProps {
+  isOpen: boolean
+  uploadFiles: File[]
+  onClose: () => void
+  onFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onUpload: () => void
+  formatSize: (bytes: number) => string
 }

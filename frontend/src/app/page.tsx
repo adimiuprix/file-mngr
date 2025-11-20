@@ -9,6 +9,16 @@ import ContextMenu from '@/components/ContextMenu'
 import ToolBar from '@/components/ToolBar'
 import DropZone from '@/components/DropZone'
 
+// Modal components
+import UploadModal from '@/components/modal/UploadModal'
+import FolderModal from '@/components/modal/FolderModal'
+import NewFileModal from '@/components/modal/NewFileModal'
+import EditModal from '@/components/modal/EditModal'
+import RenameModal from '@/components/modal/RenameModal'
+import MoveModal from '@/components/modal/MoveModal'
+import CopyModal from '@/components/modal/CopyModal'
+import DeleteConfirmModal from '@/components/modal/DeleteConfirmModal'
+
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -675,7 +685,11 @@ export default function FileManager() {
 
           <div className="file-grid">
             <div className="file-header">
-              <div><input type="checkbox" className="checkbox" checked={selected.size === files.length && files.length > 0} onChange={toggleSelectAll} /></div>
+
+              <div>
+                <input type="checkbox" className="checkbox" checked={selected.size === files.length && files.length > 0} onChange={toggleSelectAll} />
+              </div>
+
               <div>Name</div>
               <div>Size</div>
               <div>Modified</div>
@@ -754,202 +768,84 @@ export default function FileManager() {
         }}
       />
 
-      {/* Modals - Upload */}
-      {uploadModalOpen && (
-        <div className="modal show">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Upload Files</h3>
-              <button className="close-btn" onClick={() => setUploadModalOpen(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <input type="file" id="fileInput" multiple onChange={handleFileInputChange} style={{ display: 'none' }} />
-              <button className="btn btn-primary" onClick={() => document.getElementById('fileInput')?.click()}>Choose Files</button>
-              <div style={{ marginTop: '15px' }}>
-                {uploadFiles.map((f, i) => (
-                  <div key={i}>📄 {f.name} ({formatSize(f.size)})</div>
-                ))}
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn" onClick={() => setUploadModalOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={doUploadFiles}>Upload</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Upload */}
+      <UploadModal
+        isOpen={uploadModalOpen}
+        uploadFiles={uploadFiles}
+        onClose={() => setUploadModalOpen(false)}
+        onFileInputChange={handleFileInputChange}
+        onUpload={doUploadFiles}
+        formatSize={formatSize}
+      />
 
-      {/* Modal - New Folder */}
-      {folderModalOpen && (
-        <div className="modal show">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>New Folder</h3>
-              <button className="close-btn" onClick={() => setFolderModalOpen(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Folder Name</label>
-                <input type="text" className="form-control" value={folderName} onChange={(e) => setFolderName(e.target.value)} placeholder="Enter folder name" />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn" onClick={() => setFolderModalOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={createFolder}>Create</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal New Folder */}
+      <FolderModal
+        isOpen={folderModalOpen}
+        folderName={folderName}
+        onClose={() => setFolderModalOpen(false)}
+        onFolderNameChange={setFolderName}
+        onCreate={createFolder}
+      />
 
-      {/* Modal - New File */}
-      {fileModalOpen && (
-        <div className="modal show">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>New File</h3>
-              <button className="close-btn" onClick={() => setFileModalOpen(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>File Name</label>
-                <input type="text" className="form-control" value={fileName} onChange={(e) => setFileName(e.target.value)} placeholder="example.txt" />
-              </div>
-              <div className="form-group">
-                <label>Content</label>
-                <textarea className="form-control" value={fileContent} onChange={(e) => setFileContent(e.target.value)}></textarea>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn" onClick={() => setFileModalOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={createFile}>Create</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal New File */}
+      <NewFileModal
+        isOpen={fileModalOpen}
+        fileName={fileName}
+        fileContent={fileContent}
+        onClose={() => setFileModalOpen(false)}
+        onFileNameChange={setFileName}
+        onFileContentChange={setFileContent}
+        onCreate={createFile}
+      />
 
-      {/* Modal - Edit File */}
-      {editModalOpen && (
-        <div className="modal show">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>{editTitle}</h3>
-              <button className="close-btn" onClick={() => setEditModalOpen(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <textarea className="form-control" value={editContent} onChange={(e) => setEditContent(e.target.value)}></textarea>
-            </div>
-            <div className="modal-footer">
-              <button className="btn" onClick={() => setEditModalOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={saveFile}>Save</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Edit File */}
+      <EditModal
+        isOpen={editModalOpen}
+        title={editTitle}
+        content={editContent}
+        onClose={() => setEditModalOpen(false)}
+        onContentChange={setEditContent}
+        onSave={saveFile}
+      />
 
-      {/* Modal - Rename */}
-      {renameModalOpen && (
-        <div className="modal show">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Rename</h3>
-              <button className="close-btn" onClick={() => setRenameModalOpen(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>New Name</label>
-                <input type="text" className="form-control" value={renameName} onChange={(e) => setRenameName(e.target.value)} />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn" onClick={() => setRenameModalOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={doRename}>Rename</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Rename */}
+      <RenameModal
+        isOpen={renameModalOpen}
+        name={renameName}
+        onClose={() => setRenameModalOpen(false)}
+        onNameChange={setRenameName}
+        onRename={doRename}
+      />
 
-      {/* Modal - Move */}
-      {moveModalOpen && (
-        <div className="modal show">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Move To</h3>
-              <button className="close-btn" onClick={() => setMoveModalOpen(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Destination Path</label>
-                <input type="text" className="form-control" value={movePath} onChange={(e) => setMovePath(e.target.value)} placeholder="folder/subfolder" />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn" onClick={() => setMoveModalOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={doMove}>Move</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Move */}
+      <MoveModal
+        isOpen={moveModalOpen}
+        path={movePath}
+        onClose={() => setMoveModalOpen(false)}
+        onPathChange={setMovePath}
+        onMove={doMove}
+      />
 
-      {/* Modal - Copy */}
-      {copyModalOpen && (
-        <div className="modal show">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Copy To</h3>
-              <button className="close-btn" onClick={() => setCopyModalOpen(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Destination Path</label>
-                <input type="text" className="form-control" value={copyPath} onChange={(e) => setCopyPath(e.target.value)} placeholder="folder/subfolder" />
-              </div>
-              <div className="form-group">
-                <label>New Name (optional)</label>
-                <input type="text" className="form-control" value={copyNewName} onChange={(e) => setCopyNewName(e.target.value)} placeholder="Leave empty to keep same name" />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn" onClick={() => setCopyModalOpen(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={doCopy}>Copy</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Copy */}
+      <CopyModal
+        isOpen={copyModalOpen}
+        path={copyPath}
+        newName={copyNewName}
+        onClose={() => setCopyModalOpen(false)}
+        onPathChange={setCopyPath}
+        onNewNameChange={setCopyNewName}
+        onCopy={doCopy}
+      />
 
-      {/* Modal - Delete Confirmation */}
-      {deleteConfirmModalOpen && (
-        <div className="modal confirm-modal show">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Confirm Delete</h3>
-              <button className="close-btn" onClick={() => setDeleteConfirmModalOpen(false)}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <div className="confirm-icon">⚠️</div>
-              <div className="confirm-message">
-                {selected.size === 1 ? 'Are you sure you want to delete this item?' : `Are you sure you want to delete ${selected.size} items?`}
-              </div>
-              <div className="confirm-details">
-                {[...selected].map(i => {
-                  const file = files[i]
-                  return (
-                    <div key={i} className="confirm-file-item">
-                      {file.isDir ? '📁' : '📄'} {file.name}
-                    </div>
-                  )
-                })}
-              </div>
-              <p style={{ marginTop: '16px', color: '#dc3545', fontSize: '14px', textAlign: 'center' }}>
-                <strong>This action cannot be undone!</strong>
-              </p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn" onClick={() => setDeleteConfirmModalOpen(false)}>Cancel</button>
-              <button className="btn btn-danger" onClick={confirmDelete}>Yes, Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Delete Confirmation */}
+      <DeleteConfirmModal
+        isOpen={deleteConfirmModalOpen}
+        selectedCount={selected.size}
+        selectedItems={Array.from(selected)}
+        files={files}
+        onClose={() => setDeleteConfirmModalOpen(false)}
+        onConfirm={confirmDelete}
+      />
 
       {/* Progress Bar */}
       <ProgressBar

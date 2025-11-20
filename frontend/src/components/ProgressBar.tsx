@@ -1,12 +1,6 @@
 import React from 'react';
 
-interface ProgressBarProps {
-  progress: number;
-  isVisible: boolean;
-  operationType: 'upload' | 'delete';
-  fileName?: string;
-  message?: string;
-}
+import { ProgressBarProps } from '@/types'
 
 const ProgressBar: React.FC<ProgressBarProps> = ({
   progress,
