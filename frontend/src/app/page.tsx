@@ -6,6 +6,8 @@ import Header from '@/components/Header'
 import Breadcrumb from '@/components/Breadcrumb'
 import DirectoryTree from '@/components/DirectoryTree'
 import ContextMenu from '@/components/ContextMenu'
+import ToolBar from '@/components/ToolBar'
+import DropZone from '@/components/DropZone'
 
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -627,21 +629,23 @@ export default function FileManager() {
       <Header />
 
       {/* Toolbar */}
-      <div className="toolbar">
-        <button className="btn" onClick={toggleSidebar}>☰ Tree</button>
-        <button className="btn" onClick={goUp}>⬆️ Up</button>
-        <button className="btn" onClick={refresh}>🔄 Refresh</button>
-        <div className="divider"></div>
-        <button className="btn btn-primary" onClick={() => setUploadModalOpen(true)}>⬆️ Upload</button>
-        <button className="btn" onClick={() => setFileModalOpen(true)}>📄 New File</button>
-        <button className="btn" onClick={() => setFolderModalOpen(true)}>📁 New Folder</button>
-        <div className="divider"></div>
-        <button className="btn" disabled={!singleFile} onClick={editSelected}>✏️ Edit</button>
-        <button className="btn" disabled={!single} onClick={renameSelected}>✏️ Rename</button>
-        <button className="btn" disabled={!singleFile} onClick={downloadSelected}>⬇️ Download</button>
-        <button className="btn btn-danger" disabled={count === 0} onClick={deleteSelected}>🗑️ Delete</button>
-      </div>
+      <ToolBar
+        onToggleSidebar={toggleSidebar}
+        onGoUp={goUp}
+        onRefresh={refresh}
+        onUpload={() => setUploadModalOpen(true)}
+        onNewFile={() => setFileModalOpen(true)}
+        onNewFolder={() => setFolderModalOpen(true)}
+        onEdit={editSelected}
+        onRename={renameSelected}
+        onDownload={downloadSelected}
+        onDelete={deleteSelected}
+        singleFile={singleFile}
+        single={single}
+        count={count}
+      />
 
+      {/* Breadcrumb component */}
       <Breadcrumb currentPath={currentPath || ''} loadFiles={loadFiles} />
 
       {/* Main Layout */}
@@ -665,16 +669,9 @@ export default function FileManager() {
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >
+
           {/* Drop Zone */}
-          {isDragOver && (
-            <div className="drop-zone active">
-              <div className="drop-zone-content">
-                <div className="drop-zone-icon">📤</div>
-                <div className="drop-zone-text">Drop files here to upload</div>
-                <div className="drop-zone-hint">Release to start uploading</div>
-              </div>
-            </div>
-          )}
+          <DropZone isVisible={isDragOver} />
 
           <div className="file-grid">
             <div className="file-header">
@@ -722,6 +719,7 @@ export default function FileManager() {
         </div>
       </div>
 
+      {/* ContextMenu Component */}
       <ContextMenu
         show={contextMenuPos.show}
         x={contextMenuPos.x}
