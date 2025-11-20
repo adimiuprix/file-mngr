@@ -1,6 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import ProgressBar from '../components/ProgressBar'
+
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface FileItem {
   name: string
@@ -18,7 +22,7 @@ export default function FileManager() {
   const [treeCache, setTreeCache] = useState<Record<string, FileItem[]>>({})
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [sidebarVisible, setSidebarVisible] = useState(true)
-  
+
   // Modal states
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
   const [folderModalOpen, setFolderModalOpen] = useState(false)
@@ -28,7 +32,7 @@ export default function FileManager() {
   const [moveModalOpen, setMoveModalOpen] = useState(false)
   const [copyModalOpen, setCopyModalOpen] = useState(false)
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false)
-  
+
   // Form states
   const [folderName, setFolderName] = useState('')
   const [fileName, setFileName] = useState('')
@@ -40,23 +44,30 @@ export default function FileManager() {
   const [copyPath, setCopyPath] = useState('')
   const [copyNewName, setCopyNewName] = useState('')
   const [uploadFiles, setUploadFiles] = useState<File[]>([])
-  
+
   // Current editing file
   const [currentEditFile, setCurrentEditFile] = useState('')
   const [currentRenameFile, setCurrentRenameFile] = useState('')
   const [currentMoveFile, setCurrentMoveFile] = useState('')
   const [currentCopyFile, setCurrentCopyFile] = useState('')
-  
+
+  // Progress bar states
+  const [showProgressBar, setShowProgressBar] = useState(false)
+  const [progressValue, setProgressValue] = useState(0)
+  const [progressOperation, setProgressOperation] = useState<'upload' | 'delete'>('upload')
+  const [progressFileName, setProgressFileName] = useState('')
+  const [progressMessage, setProgressMessage] = useState('')
+
   // Drag and drop
   const [isDragOver, setIsDragOver] = useState(false)
   const dragCounter = useRef(0)
-  
+
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787'
 
   useEffect(() => {
     loadFiles()
     loadTree()
-    
+
     const storedSidebar = localStorage.getItem('sidebarVisible')
     if (storedSidebar === 'false') {
       setSidebarVisible(false)
@@ -73,9 +84,9 @@ export default function FileManager() {
     try {
       const res = await fetch(`${API_BASE}/api/list?path=${encodeURIComponent(path)}`)
       const data = await res.json()
-      
+
       if (data.error) throw new Error(data.error)
-      
+
       setFiles(data.items || [])
       setCurrentPath(path)
       setSelected(new Set())
@@ -88,9 +99,9 @@ export default function FileManager() {
     try {
       const res = await fetch(`${API_BASE}/api/list?path=${encodeURIComponent(path)}`)
       const data = await res.json()
-      
+
       if (data.error) throw new Error(data.error)
-      
+
       const folders = (data.items || []).filter((item: FileItem) => item.isDir)
       setTreeCache(prev => ({ ...prev, [path]: folders }))
     } catch (e) {
@@ -168,13 +179,13 @@ export default function FileManager() {
   const editFile = async (index: number) => {
     const file = files[index]
     if (file.isDir) return
-    
+
     try {
       const res = await fetch(`${API_BASE}/api/file?path=${encodeURIComponent(getFilePath(file.name))}`)
       const data = await res.json()
-      
+
       if (data.error) throw new Error(data.error)
-      
+
       setEditTitle(`Edit: ${file.name}`)
       setEditContent(data.content)
       setCurrentEditFile(file.name)
@@ -193,10 +204,10 @@ export default function FileManager() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path, content: editContent })
       })
-      
+
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      
+
       showSuccess('File saved successfully')
       setEditModalOpen(false)
       loadFiles(currentPath)
@@ -223,20 +234,20 @@ export default function FileManager() {
 
   const doRename = async () => {
     if (!renameName.trim()) return showError('Please enter a name')
-    
+
     const from = getFilePath(currentRenameFile)
     const to = getFilePath(renameName)
-    
+
     try {
       const res = await fetch(`${API_BASE}/api/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ from, to })
       })
-      
+
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      
+
       showSuccess('Renamed successfully')
       setRenameModalOpen(false)
       loadFiles(currentPath)
@@ -261,24 +272,43 @@ export default function FileManager() {
   }
 
   const confirmDelete = async () => {
+    if (selected.size === 0) return
+
+    setShowProgressBar(true)
+    setProgressOperation('delete')
+    setProgressMessage(`Deleting ${selected.size} item(s)...`)
+
     try {
-      for (const index of selected) {
+      const selectedArray = Array.from(selected)
+      for (let i = 0; i < selectedArray.length; i++) {
+        const index = selectedArray[i]
         const file = files[index]
+        setProgressFileName(file.name)
+        setProgressValue(Math.round((i / selectedArray.length) * 100))
+
         const res = await fetch(`${API_BASE}/api/delete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: getFilePath(file.name) })
         })
-        
+
         const data = await res.json()
         if (data.error) throw new Error(data.error)
       }
-      
-      showSuccess('Deleted successfully')
-      setDeleteConfirmModalOpen(false)
-      loadFiles(currentPath)
+
+      setProgressMessage('Delete completed successfully!')
+      setProgressValue(100)
+      setTimeout(() => {
+        setShowProgressBar(false)
+        setProgressValue(0)
+        showSuccess('Deleted successfully')
+        setDeleteConfirmModalOpen(false)
+        loadFiles(currentPath)
+      }, 1000)
     } catch (e: any) {
       showError(e.message)
+      setShowProgressBar(false)
+      setProgressValue(0)
     }
   }
 
@@ -290,46 +320,77 @@ export default function FileManager() {
 
   const doUploadFiles = async () => {
     if (uploadFiles.length === 0) return showError('No files selected')
-    
+
+    setShowProgressBar(true)
+    setProgressOperation('upload')
+    setProgressMessage(`Uploading ${uploadFiles.length} file(s)...`)
+
     try {
-      for (const file of uploadFiles) {
+      for (let i = 0; i < uploadFiles.length; i++) {
+        const file = uploadFiles[i]
+        setProgressFileName(file.name)
+        setProgressValue(0)
+
+        // Simulate upload progress
+        const interval = setInterval(() => {
+          setProgressValue(prev => {
+            const newValue = prev + 10
+            if (newValue >= 100) {
+              clearInterval(interval)
+              return 100
+            }
+            return newValue
+          })
+        }, 50)
+
         const path = getFilePath(file.name)
         const buf = await file.arrayBuffer()
-        
+
         const res = await fetch(`${API_BASE}/api/upload`, {
           method: 'POST',
           headers: { 'x-filename': path },
           body: buf
         })
-        
+
+        clearInterval(interval)
+        setProgressValue(100)
+
         const data = await res.json()
         if (data.error) throw new Error(data.error)
       }
-      
+
       showSuccess(`Uploaded ${uploadFiles.length} file(s)`)
       setUploadModalOpen(false)
       setUploadFiles([])
-      loadFiles(currentPath)
+      setProgressMessage('Upload completed successfully!')
+      setProgressValue(100)
+      setTimeout(() => {
+        setShowProgressBar(false)
+        setProgressValue(0)
+        loadFiles(currentPath)
+      }, 1000)
     } catch (e: any) {
       showError(e.message)
+      setShowProgressBar(false)
+      setProgressValue(0)
     }
   }
 
   const createFolder = async () => {
     if (!folderName.trim()) return showError('Please enter a folder name')
-    
+
     const path = getFilePath(folderName)
-    
+
     try {
       const res = await fetch(`${API_BASE}/api/mkdir`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path })
       })
-      
+
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      
+
       showSuccess('Folder created')
       setFolderModalOpen(false)
       setFolderName('')
@@ -341,19 +402,19 @@ export default function FileManager() {
 
   const createFile = async () => {
     if (!fileName.trim()) return showError('Please enter a file name')
-    
+
     const path = getFilePath(fileName)
-    
+
     try {
       const res = await fetch(`${API_BASE}/api/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path, content: fileContent })
       })
-      
+
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      
+
       showSuccess('File created')
       setFileModalOpen(false)
       setFileName('')
@@ -366,20 +427,20 @@ export default function FileManager() {
 
   const doMove = async () => {
     if (!movePath.trim()) return showError('Please enter destination path')
-    
+
     const from = getFilePath(currentMoveFile)
     const to = movePath + '/' + currentMoveFile
-    
+
     try {
       const res = await fetch(`${API_BASE}/api/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ from, to })
       })
-      
+
       const data = await res.json()
       if (data.error) throw new Error(data.error)
-      
+
       showSuccess('Moved successfully')
       setMoveModalOpen(false)
       loadFiles(currentPath)
@@ -390,25 +451,25 @@ export default function FileManager() {
 
   const doCopy = async () => {
     if (!copyPath.trim()) return showError('Please enter destination path')
-    
+
     const from = getFilePath(currentCopyFile)
     const to = copyPath + '/' + (copyNewName || currentCopyFile)
-    
+
     try {
       const res = await fetch(`${API_BASE}/api/file?path=${encodeURIComponent(from)}`)
       const data = await res.json()
-      
+
       if (data.error) throw new Error(data.error)
-      
+
       const saveRes = await fetch(`${API_BASE}/api/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: to, content: data.content })
       })
-      
+
       const saveData = await saveRes.json()
       if (saveData.error) throw new Error(saveData.error)
-      
+
       showSuccess('Copied successfully')
       setCopyModalOpen(false)
       loadFiles(currentPath)
@@ -451,10 +512,28 @@ export default function FileManager() {
   }
 
   const uploadDroppedFiles = async (droppedFiles: File[]) => {
-    showSuccess(`Uploading ${droppedFiles.length} file(s)...`)
+    setShowProgressBar(true)
+    setProgressOperation('upload')
+    setProgressMessage(`Uploading ${droppedFiles.length} file(s)...`)
 
     try {
-      for (const file of droppedFiles) {
+      for (let i = 0; i < droppedFiles.length; i++) {
+        const file = droppedFiles[i]
+        setProgressFileName(file.name)
+        setProgressValue(0)
+
+        // Simulate upload progress
+        const interval = setInterval(() => {
+          setProgressValue(prev => {
+            const newValue = prev + 10
+            if (newValue >= 100) {
+              clearInterval(interval)
+              return 100
+            }
+            return newValue
+          })
+        }, 50)
+
         const path = getFilePath(file.name)
         const buf = await file.arrayBuffer()
 
@@ -464,14 +543,25 @@ export default function FileManager() {
           body: buf
         })
 
+        clearInterval(interval)
+        setProgressValue(100)
+
         const data = await res.json()
         if (data.error) throw new Error(data.error)
       }
 
       showSuccess(`Successfully uploaded ${droppedFiles.length} file(s)`)
-      loadFiles(currentPath)
+      setProgressMessage('Upload completed successfully!')
+      setProgressValue(100)
+      setTimeout(() => {
+        setShowProgressBar(false)
+        setProgressValue(0)
+        loadFiles(currentPath)
+      }, 1000)
     } catch (e: any) {
       showError(e.message)
+      setShowProgressBar(false)
+      setProgressValue(0)
     }
   }
 
@@ -520,12 +610,12 @@ export default function FileManager() {
 
   const showSuccess = (msg: string) => {
     // Implement toast notification
-    alert(msg)
+    toast.success(msg)
   }
 
   const showError = (msg: string) => {
     // Implement toast notification
-    alert('Error: ' + msg)
+    toast.warning('Error: ' + msg)
   }
 
   const renderBreadcrumb = () => {
@@ -533,7 +623,7 @@ export default function FileManager() {
     const crumbs = [
       <a key="home" onClick={() => loadFiles('')} className="breadcrumb-link">🏠 Home</a>
     ]
-    
+
     let path = ''
     parts.forEach((part, idx) => {
       path += (path ? '/' : '') + part
@@ -543,7 +633,7 @@ export default function FileManager() {
         <a key={p} onClick={() => loadFiles(p)} className="breadcrumb-link">{part}</a>
       )
     })
-    
+
     return crumbs
   }
 
@@ -552,11 +642,11 @@ export default function FileManager() {
       const folderPath = basePath ? `${basePath}/${folder.name}` : folder.name
       const isExpanded = expandedFolders.has(folderPath)
       const isActive = currentPath === folderPath
-      
+
       return (
         <div key={folderPath} className="tree-item-wrapper">
           <div className={`tree-item ${isActive ? 'active' : ''}`}>
-            <span 
+            <span
               className={`tree-toggle ${isExpanded ? 'expanded' : ''}`}
               onClick={() => toggleTreeFolder(folderPath)}
             >
@@ -588,6 +678,7 @@ export default function FileManager() {
   const singleFile = single && !files[[...selected][0]].isDir
 
   return (
+    <>
     <div className="file-manager">
       {/* Header */}
       <div className="header">
@@ -624,7 +715,7 @@ export default function FileManager() {
         </div>
 
         {/* Container */}
-        <div 
+        <div
           className={`container ${isDragOver ? 'drag-over' : ''}`}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
@@ -665,10 +756,10 @@ export default function FileManager() {
                     onContextMenu={(e) => showContextMenu(e, i)}
                   >
                     <div>
-                      <input 
-                        type="checkbox" 
-                        className="checkbox" 
-                        checked={selected.has(i)} 
+                      <input
+                        type="checkbox"
+                        className="checkbox"
+                        checked={selected.has(i)}
                         onChange={() => toggleSelect(i)}
                         onClick={(e) => e.stopPropagation()}
                       />
@@ -689,10 +780,10 @@ export default function FileManager() {
 
       {/* Context Menu */}
       {contextMenuPos.show && contextTarget !== null && (
-        <div 
-          className="context-menu" 
-          style={{ 
-            left: contextMenuPos.x, 
+        <div
+          className="context-menu"
+          style={{
+            left: contextMenuPos.x,
             top: contextMenuPos.y,
             display: 'block'
           }}
@@ -706,7 +797,7 @@ export default function FileManager() {
             <span>Edit</span>
           </div>
           <div className="context-menu-separator"></div>
-          <div className="context-menu-item" onClick={() => { 
+          <div className="context-menu-item" onClick={() => {
             setCurrentMoveFile(files[contextTarget].name)
             setMovePath('')
             setMoveModalOpen(true)
@@ -949,6 +1040,17 @@ export default function FileManager() {
           </div>
         </div>
       )}
+
+      {/* Progress Bar */}
+      <ProgressBar
+        progress={progressValue}
+        isVisible={showProgressBar}
+        operationType={progressOperation}
+        fileName={progressFileName}
+        message={progressMessage}
+      />
     </div>
+    <ToastContainer />
+    </>
   )
 }
