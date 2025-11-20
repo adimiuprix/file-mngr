@@ -98,10 +98,11 @@ body {
   color: #007bff;
   text-decoration: none;
   cursor: pointer;
+  border: none;
 }
 
 .breadcrumb-link:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .main-layout {
