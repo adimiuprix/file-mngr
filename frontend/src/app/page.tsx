@@ -717,6 +717,7 @@ export default function FileManager() {
               )}
             </div>
           </div>
+
         </div>
       </div>
 
@@ -992,7 +993,10 @@ export default function FileManager() {
         message={progressMessage}
       />
     </div>
+
+    {/* Toast Component */}
     <ToastContainer />
+    
     </>
   )
 }
