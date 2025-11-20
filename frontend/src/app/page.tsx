@@ -1,17 +1,15 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import ProgressBar from '../components/ProgressBar'
+import ProgressBar from '@/components/ProgressBar'
+import Header from '@/components/Header'
+import Breadcrumb from '@/components/Breadcrumb'
+import DirectoryTree from '@/components/DirectoryTree'
 
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
-interface FileItem {
-  name: string
-  isDir: boolean
-  size: number
-  mtime: number
-}
+import { FileItem } from '@/types'
 
 export default function FileManager() {
   const [currentPath, setCurrentPath] = useState('')
@@ -618,61 +616,6 @@ export default function FileManager() {
     toast.warning('Error: ' + msg)
   }
 
-  const renderBreadcrumb = () => {
-    const parts = currentPath.split('/').filter(Boolean)
-    const crumbs = [
-      <a key="home" onClick={() => loadFiles('')} className="breadcrumb-link">🏠 Home</a>
-    ]
-
-    let path = ''
-    parts.forEach((part, idx) => {
-      path += (path ? '/' : '') + part
-      const p = path
-      crumbs.push(
-        <span key={`sep-${idx}`}> / </span>,
-        <a key={p} onClick={() => loadFiles(p)} className="breadcrumb-link">{part}</a>
-      )
-    })
-
-    return crumbs
-  }
-
-  const renderTree = (folders: FileItem[], basePath: string) => {
-    return folders.map(folder => {
-      const folderPath = basePath ? `${basePath}/${folder.name}` : folder.name
-      const isExpanded = expandedFolders.has(folderPath)
-      const isActive = currentPath === folderPath
-
-      return (
-        <div key={folderPath} className="tree-item-wrapper">
-          <div className={`tree-item ${isActive ? 'active' : ''}`}>
-            <span
-              className={`tree-toggle ${isExpanded ? 'expanded' : ''}`}
-              onClick={() => toggleTreeFolder(folderPath)}
-            >
-              ▶
-            </span>
-            <span className="tree-icon">📁</span>
-            <span className="tree-name" onClick={() => loadFiles(folderPath)}>{folder.name}</span>
-          </div>
-          {isExpanded && (
-            <div className="tree-children expanded">
-              {treeCache[folderPath] ? (
-                treeCache[folderPath].length > 0 ? (
-                  renderTree(treeCache[folderPath], folderPath)
-                ) : (
-                  <div style={{ padding: '8px 16px', fontSize: '12px', color: '#999' }}>Empty folder</div>
-                )
-              ) : (
-                <div className="loading" style={{ padding: '8px 16px', fontSize: '12px' }}>Loading...</div>
-              )}
-            </div>
-          )}
-        </div>
-      )
-    })
-  }
-
   const count = selected.size
   const single = count === 1
   const singleFile = single && !files[[...selected][0]].isDir
@@ -680,10 +623,7 @@ export default function FileManager() {
   return (
     <>
     <div className="file-manager">
-      {/* Header */}
-      <div className="header">
-        <h1>📁 File Manager</h1>
-      </div>
+      <Header />
 
       {/* Toolbar */}
       <div className="toolbar">
@@ -701,18 +641,20 @@ export default function FileManager() {
         <button className="btn btn-danger" disabled={count === 0} onClick={deleteSelected}>🗑️ Delete</button>
       </div>
 
-      {/* Breadcrumb */}
-      <div className="breadcrumb">{renderBreadcrumb()}</div>
+      <Breadcrumb currentPath={currentPath || ''} loadFiles={loadFiles} />
 
       {/* Main Layout */}
       <div className="main-layout">
+
         {/* Sidebar */}
-        <div className={`sidebar ${!sidebarVisible ? 'hidden' : ''}`}>
-          <div className="sidebar-header">📁 Directory Tree</div>
-          <div className="tree-view">
-            {treeCache[''] ? renderTree(treeCache[''], '') : <div className="loading">Loading...</div>}
-          </div>
-        </div>
+        <DirectoryTree
+          treeCache={treeCache}
+          expandedFolders={expandedFolders}
+          currentPath={currentPath}
+          sidebarVisible={sidebarVisible}
+          toggleTreeFolder={toggleTreeFolder}
+          loadFiles={loadFiles}
+        />
 
         {/* Container */}
         <div
