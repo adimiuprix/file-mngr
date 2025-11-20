@@ -4,6 +4,7 @@ import { cors } from 'hono/cors'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import AdmZip from 'adm-zip'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -137,6 +138,38 @@ app.post('/api/upload', async (c) => {
     const buf = await c.req.arrayBuffer()
     await fs.promises.writeFile(destPath, Buffer.from(buf))
     return c.json({ ok: true })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
+})
+
+// API: extract archive (zip, tar, etc)
+app.post('/api/extract', async (c) => {
+  try {
+    const { path: rel, destination } = await c.req.json()
+    const filePath = safePath(rel)
+    if (!filePath) return c.json({ error: 'invalid path' }, 400)
+    if (!fs.existsSync(filePath)) return c.json({ error: 'file not found' }, 404)
+
+    const ext = path.extname(filePath).toLowerCase()
+
+    const extractTo = destination
+      ? safePath(destination) || null
+      : path.join(path.dirname(filePath), path.basename(filePath, ext))
+    if (!extractTo) return c.json({ error: 'invalid destination path' }, 400)
+
+    if (!fs.existsSync(extractTo)) await fs.promises.mkdir(extractTo, { recursive: true })
+
+    if (ext === '.zip') {
+      new AdmZip(filePath).extractAllTo(extractTo, true)
+      return c.json({
+        ok: true,
+        message: 'Archive extracted successfully',
+        extractedTo: path.relative(STORAGE, extractTo),
+      })
+    }
+
+    return c.json({ error: `Unsupported archive format: ${ext}. Currently only .zip is supported.` }, 400)
   } catch (e: any) {
     return c.json({ error: e.message }, 500)
   }

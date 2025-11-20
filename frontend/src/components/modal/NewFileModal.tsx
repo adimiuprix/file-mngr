@@ -1,14 +1,19 @@
 import { NewFileModalProps } from '@/types'
+import CodeMirror from '@uiw/react-codemirror'
+import { vscodeDark } from '@uiw/codemirror-theme-vscode'
+import { javascript } from '@codemirror/lang-javascript'
 
-export default function NewFileModal({
-  isOpen,
-  fileName,
-  fileContent,
-  onClose,
-  onFileNameChange,
-  onFileContentChange,
-  onCreate
-}: NewFileModalProps) {
+export default function NewFileModal(props: NewFileModalProps) {
+  const {
+    isOpen,
+    fileName,
+    fileContent,
+    onClose,
+    onFileNameChange,
+    onFileContentChange,
+    onCreate
+  } = props
+
   if (!isOpen) return null
 
   return (
@@ -18,26 +23,31 @@ export default function NewFileModal({
           <h3>New File</h3>
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
+
         <div className="modal-body">
           <div className="form-group">
             <label>File Name</label>
-            <input 
-              type="text" 
-              className="form-control" 
-              value={fileName} 
-              onChange={(e) => onFileNameChange(e.target.value)} 
-              placeholder="example.txt" 
+            <input
+              type="text"
+              className="form-control"
+              value={fileName}
+              onChange={(e) => onFileNameChange(e.target.value)}
+              placeholder="example.txt"
             />
           </div>
-          <div className="form-group">
+
+          <div className="form-group" style={{ marginTop: '15px' }}>
             <label>Content</label>
-            <textarea 
-              className="form-control" 
-              value={fileContent} 
-              onChange={(e) => onFileContentChange(e.target.value)}
-            ></textarea>
+            <CodeMirror
+              value={fileContent}
+              height="300px"
+              theme={vscodeDark}
+              extensions={[javascript({ jsx: true })]}
+              onChange={(value) => onFileContentChange(value)}
+            />
           </div>
         </div>
+
         <div className="modal-footer">
           <button className="btn" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" onClick={onCreate}>Create</button>

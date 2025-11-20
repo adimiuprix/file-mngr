@@ -25,6 +25,7 @@ export interface ToolbarProps {
   onRename: () => void
   onDownload: () => void
   onDelete: () => void
+  onExtract: () => void
   singleFile: boolean
   single: boolean
   count: number

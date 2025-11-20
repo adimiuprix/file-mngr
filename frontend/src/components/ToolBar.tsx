@@ -11,6 +11,7 @@ export default function ToolBar({
   onRename,
   onDownload,
   onDelete,
+  onExtract,
   singleFile,
   single,
   count
@@ -29,6 +30,9 @@ export default function ToolBar({
       <button className="btn" disabled={!single} onClick={onRename}>✏️ Rename</button>
       <button className="btn" disabled={!singleFile} onClick={onDownload}>⬇️ Download</button>
       <button className="btn btn-danger" disabled={count === 0} onClick={onDelete}>🗑️ Delete</button>
+
+      {/* Extract button */}
+      <button className="btn" disabled={!singleFile} onClick={onExtract}>📦 Extract</button>
     </div>
   )
 }

@@ -589,6 +589,91 @@ export default function FileManager() {
     loadTree()
   }
 
+  const extractSelected = async () => {
+    if (selected.size !== 1) return
+    
+    const index = [...selected][0]
+    const file = files[index]
+    
+    if (file.isDir) return
+
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (!['zip', 'rar', '7z', 'tar', 'gz'].includes(ext || '')) {
+      showError('File is not an archive')
+      return
+    }
+
+    try {
+      setShowProgressBar(true)
+      setProgressOperation('upload')
+      setProgressMessage('Preparing to extract...')
+      setProgressFileName(file.name)
+      setProgressValue(0)
+
+      // Phase 1: Smooth progress to 30% (preparation)
+      let currentProgress = 0
+      const phase1Interval = setInterval(() => {
+        currentProgress += 2
+        if (currentProgress >= 30) {
+          clearInterval(phase1Interval)
+          setProgressMessage('Extracting archive...')
+        }
+        setProgressValue(currentProgress)
+      }, 50)
+
+      // Wait for phase 1 to complete
+      await new Promise(resolve => setTimeout(resolve, 750))
+
+      // Phase 2: Progress from 30% to 85%
+      const phase2Interval = setInterval(() => {
+        currentProgress += 1.5
+        if (currentProgress >= 85) {
+          clearInterval(phase2Interval)
+        }
+        setProgressValue(currentProgress)
+      }, 100)
+
+      const res = await fetch(`${API_BASE}/api/extract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          path: getFilePath(file.name),
+          destination: ''
+        })
+      })
+
+      clearInterval(phase2Interval)
+
+      const data = await res.json()
+      
+      if (data.error) throw new Error(data.error)
+
+      // Phase 3: Complete to 100%
+      setProgressMessage('Finalizing...')
+      const finalInterval = setInterval(() => {
+        currentProgress += 5
+        if (currentProgress >= 100) {
+          clearInterval(finalInterval)
+          setProgressValue(100)
+          setProgressMessage('Extraction completed!')
+        } else {
+          setProgressValue(currentProgress)
+        }
+      }, 50)
+      
+      setTimeout(() => {
+        setShowProgressBar(false)
+        setProgressValue(0)
+        showSuccess(`Extracted successfully`)
+        loadFiles(currentPath)
+      }, 2000)
+    } catch (e: any) {
+      showError(e.message)
+      setShowProgressBar(false)
+      setProgressValue(0)
+    }
+  }
+
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible)
     localStorage.setItem('sidebarVisible', (!sidebarVisible).toString())
@@ -650,6 +735,7 @@ export default function FileManager() {
         onRename={renameSelected}
         onDownload={downloadSelected}
         onDelete={deleteSelected}
+        onExtract={extractSelected}
         singleFile={singleFile}
         single={single}
         count={count}
