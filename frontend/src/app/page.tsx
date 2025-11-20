@@ -5,6 +5,7 @@ import ProgressBar from '@/components/ProgressBar'
 import Header from '@/components/Header'
 import Breadcrumb from '@/components/Breadcrumb'
 import DirectoryTree from '@/components/DirectoryTree'
+import ContextMenu from '@/components/ContextMenu'
 
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -721,71 +722,39 @@ export default function FileManager() {
         </div>
       </div>
 
-      {/* Context Menu */}
-      {contextMenuPos.show && contextTarget !== null && (
-        <div
-          className="context-menu"
-          style={{
-            left: contextMenuPos.x,
-            top: contextMenuPos.y,
-            display: 'block'
-          }}
-        >
-          <div className="context-menu-item" onClick={() => { handleDoubleClick(contextTarget); setContextMenuPos({ ...contextMenuPos, show: false }) }}>
-            <span className="context-menu-icon">📂</span>
-            <span>Open</span>
-          </div>
-          <div className="context-menu-item" onClick={() => { editFile(contextTarget); setContextMenuPos({ ...contextMenuPos, show: false }) }}>
-            <span className="context-menu-icon">✏️</span>
-            <span>Edit</span>
-          </div>
-          <div className="context-menu-separator"></div>
-          <div className="context-menu-item" onClick={() => {
-            setCurrentMoveFile(files[contextTarget].name)
-            setMovePath('')
-            setMoveModalOpen(true)
-            setContextMenuPos({ ...contextMenuPos, show: false })
-          }}>
-            <span className="context-menu-icon">➡️</span>
-            <span>Move</span>
-          </div>
-          <div className="context-menu-item" onClick={() => {
-            setCurrentCopyFile(files[contextTarget].name)
-            setCopyPath('')
-            setCopyNewName('')
-            setCopyModalOpen(true)
-            setContextMenuPos({ ...contextMenuPos, show: false })
-          }}>
-            <span className="context-menu-icon">📋</span>
-            <span>Copy</span>
-          </div>
-          <div className="context-menu-item" onClick={() => {
-            setSelected(new Set([contextTarget]))
-            renameSelected()
-            setContextMenuPos({ ...contextMenuPos, show: false })
-          }}>
-            <span className="context-menu-icon">✏️</span>
-            <span>Rename</span>
-          </div>
-          <div className="context-menu-separator"></div>
-          <div className="context-menu-item" onClick={() => {
-            setSelected(new Set([contextTarget]))
-            downloadSelected()
-            setContextMenuPos({ ...contextMenuPos, show: false })
-          }}>
-            <span className="context-menu-icon">⬇️</span>
-            <span>Download</span>
-          </div>
-          <div className="context-menu-item danger" onClick={() => {
-            setSelected(new Set([contextTarget]))
-            deleteSelected()
-            setContextMenuPos({ ...contextMenuPos, show: false })
-          }}>
-            <span className="context-menu-icon">🗑️</span>
-            <span>Delete</span>
-          </div>
-        </div>
-      )}
+      <ContextMenu
+        show={contextMenuPos.show}
+        x={contextMenuPos.x}
+        y={contextMenuPos.y}
+        contextTarget={contextTarget}
+        files={files}
+        onClose={() => setContextMenuPos({ ...contextMenuPos, show: false })}
+        onOpen={handleDoubleClick}
+        onEdit={editFile}
+        onMove={(fileName) => {
+          setCurrentMoveFile(fileName)
+          setMovePath('')
+          setMoveModalOpen(true)
+        }}
+        onCopy={(fileName) => {
+          setCurrentCopyFile(fileName)
+          setCopyPath('')
+          setCopyNewName('')
+          setCopyModalOpen(true)
+        }}
+        onRename={(index) => {
+          setSelected(new Set([index]))
+          renameSelected()
+        }}
+        onDownload={(index) => {
+          setSelected(new Set([index]))
+          downloadSelected()
+        }}
+        onDelete={(index) => {
+          setSelected(new Set([index]))
+          deleteSelected()
+        }}
+      />
 
       {/* Modals - Upload */}
       {uploadModalOpen && (
