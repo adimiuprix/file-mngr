@@ -852,6 +852,10 @@ export default function FileManager() {
           setSelected(new Set([index]))
           deleteSelected()
         }}
+        onExtract={(index) => {
+          setSelected(new Set([index]))
+          extractSelected()
+        }}
       />
 
       {/* Modal Upload */}

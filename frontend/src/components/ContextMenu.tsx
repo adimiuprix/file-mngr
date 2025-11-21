@@ -13,14 +13,15 @@ export default function ContextMenu({
   onCopy,
   onRename,
   onDownload,
-  onDelete
+  onDelete,
+  onExtract
 }: ContextMenuProps) {
   if (!show || contextTarget === null) return null
 
   // Kalkulasi posisi agar tidak keluar layar
   const menuWidth = 200
   const menuHeight = 280 // Perkiraan tinggi menu
-  const padding = 10
+  const padding = 100
 
   let adjustedX = x
   let adjustedY = y
@@ -92,6 +93,14 @@ export default function ContextMenu({
         <span className="context-menu-icon">⬇️</span>
         <span>Download</span>
       </div>
+      <div className="context-menu-item" onClick={() => {
+        onExtract(contextTarget)
+        onClose()
+      }}>
+        <span className="context-menu-icon">📦</span>
+        <span>Extract</span>
+      </div>
+      <div className="context-menu-separator"></div>
       <div className="context-menu-item danger" onClick={() => {
         onDelete(contextTarget)
         onClose()

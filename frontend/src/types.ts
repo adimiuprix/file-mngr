@@ -45,6 +45,7 @@ export interface ContextMenuProps {
   onRename: (index: number) => void
   onDownload: (index: number) => void
   onDelete: (index: number) => void
+  onExtract: (index: number) => void
 }
 
 export interface DropZoneProps {
