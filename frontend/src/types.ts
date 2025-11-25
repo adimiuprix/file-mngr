@@ -26,6 +26,7 @@ export interface ToolbarProps {
   onDownload: () => void
   onDelete: () => void
   onExtract: () => void
+  onCompress: () => void
   singleFile: boolean
   single: boolean
   count: number
@@ -121,4 +122,13 @@ export interface UploadModalProps {
   onFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onUpload: () => void
   formatSize: (bytes: number) => string
+}
+
+export interface CompressModalProps {
+  isOpen: boolean
+  currentItem: string
+  onClose: () => void
+  onOutputChange: (value: string) => void
+  onCompress: () => void
+  outputName: string
 }

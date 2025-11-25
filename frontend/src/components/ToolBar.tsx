@@ -12,6 +12,7 @@ export default function ToolBar({
   onDownload,
   onDelete,
   onExtract,
+  onCompress,
   singleFile,
   single,
   count
@@ -33,6 +34,7 @@ export default function ToolBar({
 
       {/* Extract button */}
       <button className="btn" disabled={!singleFile} onClick={onExtract}>📦 Extract</button>
+      <button className="btn" disabled={!single} onClick={onCompress}>🗜️ Compress</button>
     </div>
   )
 }

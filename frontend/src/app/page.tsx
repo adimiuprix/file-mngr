@@ -18,6 +18,7 @@ import RenameModal from '@/components/modal/RenameModal'
 import MoveModal from '@/components/modal/MoveModal'
 import CopyModal from '@/components/modal/CopyModal'
 import DeleteConfirmModal from '@/components/modal/DeleteConfirmModal'
+import CompressModal from '@/components/modal/CompressModal'
 
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -43,6 +44,7 @@ export default function FileManager() {
   const [moveModalOpen, setMoveModalOpen] = useState(false)
   const [copyModalOpen, setCopyModalOpen] = useState(false)
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false)
+  const [compressModalOpen, setCompressModalOpen] = useState(false)
 
   // Form states
   const [folderName, setFolderName] = useState('')
@@ -61,6 +63,9 @@ export default function FileManager() {
   const [currentRenameFile, setCurrentRenameFile] = useState('')
   const [currentMoveFile, setCurrentMoveFile] = useState('')
   const [currentCopyFile, setCurrentCopyFile] = useState('')
+
+  const [currentCompressItem, setCurrentCompressItem] = useState('')
+  const [compressOutputName, setCompressOutputName] = useState('')
 
   // Progress bar states
   const [showProgressBar, setShowProgressBar] = useState(false)
@@ -674,6 +679,99 @@ export default function FileManager() {
     }
   }
 
+  const compressSelected = () => {
+    if (selected.size !== 1) return
+    
+    const index = [...selected][0]
+    const item = files[index]
+    
+    // Set default output name
+    const defaultOutputName = `${item.name}.zip`
+    
+    setCurrentCompressItem(item.name)
+    setCompressOutputName(defaultOutputName)
+    setCompressModalOpen(true)
+  }
+
+  const doCompress = async () => {
+    if (!compressOutputName.trim()) {
+      showError('Please enter output archive name')
+      return
+    }
+
+    const itemPath = getFilePath(currentCompressItem)
+    const outputPath = getFilePath(compressOutputName)
+
+    try {
+      setShowProgressBar(true)
+      setProgressOperation('upload')
+      setProgressMessage('Preparing to compress...')
+      setProgressFileName(currentCompressItem)
+      setProgressValue(0)
+
+      let currentProgress = 0
+      const phase1Interval = setInterval(() => {
+        currentProgress += 2
+        if (currentProgress >= 30) {
+          clearInterval(phase1Interval)
+          setProgressMessage('Compressing...')
+        }
+        setProgressValue(currentProgress)
+      }, 50)
+
+      await new Promise(resolve => setTimeout(resolve, 750))
+
+      const phase2Interval = setInterval(() => {
+        currentProgress += 1.5
+        if (currentProgress >= 85) {
+          clearInterval(phase2Interval)
+        }
+        setProgressValue(currentProgress)
+      }, 100)
+
+      // API Call
+      const res = await fetch(`${API_BASE}/api/compress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          path: itemPath,
+          output: outputPath
+        })
+      })
+
+      clearInterval(phase2Interval)
+
+      const data = await res.json()
+      
+      if (data.error) throw new Error(data.error)
+
+      setProgressMessage('Finalizing...')
+      const finalInterval = setInterval(() => {
+        currentProgress += 5
+        if (currentProgress >= 100) {
+          clearInterval(finalInterval)
+          setProgressValue(100)
+          setProgressMessage('Compression completed!')
+        } else {
+          setProgressValue(currentProgress)
+        }
+      }, 50)
+      
+      setTimeout(() => {
+        setShowProgressBar(false)
+        setProgressValue(0)
+        setCompressModalOpen(false)
+        showSuccess(`Compressed successfully: ${compressOutputName}`)
+        loadFiles(currentPath)
+      }, 2000)
+
+    } catch (e: any) {
+      showError(e.message)
+      setShowProgressBar(false)
+      setProgressValue(0)
+    }
+  }
+
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible)
     localStorage.setItem('sidebarVisible', (!sidebarVisible).toString())
@@ -736,6 +834,7 @@ export default function FileManager() {
         onDownload={downloadSelected}
         onDelete={deleteSelected}
         onExtract={extractSelected}
+        onCompress={compressSelected}
         singleFile={singleFile}
         single={single}
         count={count}
@@ -935,6 +1034,16 @@ export default function FileManager() {
         files={files}
         onClose={() => setDeleteConfirmModalOpen(false)}
         onConfirm={confirmDelete}
+      />
+
+      {/* Modal Compress File & Folder selected */}
+      <CompressModal
+        isOpen={compressModalOpen}
+        currentItem={currentCompressItem}
+        outputName={compressOutputName}
+        onClose={() => setCompressModalOpen(false)}
+        onOutputChange={setCompressOutputName}
+        onCompress={doCompress}
       />
 
       {/* Progress Bar */}
