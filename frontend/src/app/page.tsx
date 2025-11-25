@@ -955,6 +955,10 @@ export default function FileManager() {
           setSelected(new Set([index]))
           extractSelected()
         }}
+        onCompress={(index) => {
+          setSelected(new Set([index]))
+          compressSelected()
+        }}
       />
 
       {/* Modal Upload */}

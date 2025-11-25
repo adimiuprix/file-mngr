@@ -14,7 +14,8 @@ export default function ContextMenu({
   onRename,
   onDownload,
   onDelete,
-  onExtract
+  onExtract,
+  onCompress
 }: ContextMenuProps) {
   if (!show || contextTarget === null) return null
 
@@ -99,6 +100,13 @@ export default function ContextMenu({
       }}>
         <span className="context-menu-icon">📦</span>
         <span>Extract</span>
+      </div>
+      <div className="context-menu-item" onClick={() => {
+        onCompress(contextTarget)
+        onClose()
+      }}>
+        <span className="context-menu-icon">🗜️</span>
+        <span>Compress</span>
       </div>
       <div className="context-menu-separator"></div>
       <div className="context-menu-item danger" onClick={() => {

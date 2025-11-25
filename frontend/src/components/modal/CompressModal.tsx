@@ -40,7 +40,7 @@ export default function CompressModal({
               placeholder="archive.zip"
             />
             <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
-              Supported formats: .zip, .tar, .tar.gz, .7z
+              Supported formats: .zip
             </small>
           </div>
 

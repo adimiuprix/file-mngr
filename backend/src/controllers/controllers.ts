@@ -119,7 +119,7 @@ export const compressItem = async (targetPath: string, outputName: string) => {
   const absolute = safePath(targetPath)
   if (!absolute) throw new Error('invalid path')
 
-  const zipPath = safePath(`${outputName}.zip`)
+  const zipPath = safePath(`${outputName}`)
   if (!zipPath) throw new Error('invalid path')
 
   if (!fs.existsSync(absolute)) {
