@@ -34,7 +34,7 @@ export default function ToolBar({
 
       {/* Extract button */}
       <button className="btn" disabled={!singleFile} onClick={onExtract}>📦 Extract</button>
-      <button className="btn" disabled={!single} onClick={onCompress}>🗜️ Compress</button>
+      <button className="btn" disabled={count === 0} onClick={onCompress}>🗜️ Compress</button>
     </div>
   )
 }

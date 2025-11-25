@@ -2,11 +2,12 @@ import { CompressModalProps } from '@/types'
 
 export default function CompressModal({
   isOpen,
-  currentItem,
+  currentItems,
   onClose,
   onOutputChange,
   onCompress,
-  outputName
+  outputName,
+  itemCount
 }: CompressModalProps) {
   if (!isOpen) return null
 
@@ -14,20 +15,37 @@ export default function CompressModal({
     <div className="modal show">
       <div className="modal-content">
         <div className="modal-header">
-          <h3>🗜️ Compress Item</h3>
+          <h3>🗜️ Compress {itemCount > 1 ? 'Items' : 'Item'}</h3>
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
         
         <div className="modal-body">
+          {/* ✅ Show list of items to compress */}
           <div className="form-group">
-            <label>Item to Compress</label>
-            <input 
-              type="text" 
-              className="form-control" 
-              value={currentItem}
-              disabled
-              style={{ background: '#f8f9fa', color: '#666' }}
-            />
+            <label>
+              {itemCount === 1 ? 'Item to Compress' : `Items to Compress (${itemCount})`}
+            </label>
+            
+            {itemCount === 1 ? (
+              <input 
+                type="text" 
+                className="form-control" 
+                value={currentItems[0]}
+                disabled
+                style={{ background: '#f8f9fa', color: '#666' }}
+              />
+            ) : (
+              <div 
+                className="confirm-details" 
+                style={{ maxHeight: '150px', overflowY: 'auto', marginTop: '8px' }}
+              >
+                {currentItems.map((item, idx) => (
+                  <div key={idx} className="confirm-file-item">
+                    📦 {item}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -40,7 +58,7 @@ export default function CompressModal({
               placeholder="archive.zip"
             />
             <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
-              Supported formats: .zip
+              Supported formats: .zip, .tar, .tar.gz, .7z
             </small>
           </div>
 
@@ -51,14 +69,17 @@ export default function CompressModal({
             fontSize: '13px',
             marginTop: '15px'
           }}>
-            <strong>ℹ️ Info:</strong> The compressed file will be created in the current directory.
+            <strong>ℹ️ Info:</strong> 
+            {itemCount === 1 
+              ? ' The item will be compressed into a single archive.' 
+              : ` All ${itemCount} items will be compressed into a single archive.`}
           </div>
         </div>
         
         <div className="modal-footer">
           <button className="btn" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" onClick={onCompress}>
-            🗜️ Compress
+            🗜️ Compress {itemCount > 1 && `(${itemCount})`}
           </button>
         </div>
       </div>

@@ -127,7 +127,8 @@ export interface UploadModalProps {
 
 export interface CompressModalProps {
   isOpen: boolean
-  currentItem: string
+  currentItems: string[]
+  itemCount: number
   onClose: () => void
   onOutputChange: (value: string) => void
   onCompress: () => void

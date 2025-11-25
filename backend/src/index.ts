@@ -122,9 +122,32 @@ app.post('/api/extract', async (c: Context) => {
 
 app.post('/api/compress', async (c: Context) => {
   try {
-    const { path, output } = await c.req.json()
-    const result = await controller.compressItem(path, output)
-    return c.json({ ok: true, ...result })
+    const body = await c.req.json()
+    
+    const targetPaths = body.paths || body.path
+    const { output } = body
+
+    if (!targetPaths) {
+      return c.json({ 
+        ok: false,
+        error: 'Missing required parameter: path or paths' 
+      }, 400)
+    }
+
+    if (!output) {
+      return c.json({ 
+        ok: false,
+        error: 'Missing required parameter: output' 
+      }, 400)
+    }
+
+    const result = await controller.compressItems(targetPaths, output)
+    
+    return c.json({ 
+      ok: true, 
+      ...result 
+    })
+
   } catch (e: any) {
     return handleError(c, e)
   }

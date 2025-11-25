@@ -113,32 +113,113 @@ export const extractArchive = async (
   return { extractedTo: relativePath }
 }
 
-export const compressItem = async (targetPath: string, outputName: string) => {
-  if (!targetPath) throw new Error('invalid path')
-
-  const absolute = safePath(targetPath)
-  if (!absolute) throw new Error('invalid path')
-
-  const zipPath = safePath(`${outputName}`)
-  if (!zipPath) throw new Error('invalid path')
-
-  if (!fs.existsSync(absolute)) {
-    throw new Error('invalid path')
+export const compressItems = async (
+  targetPaths: string | string[], 
+  outputName: string
+) => {
+  const paths = Array.isArray(targetPaths) ? targetPaths : [targetPaths]
+  
+  if (!paths || paths.length === 0) {
+    throw new Error('No items specified for compression')
   }
 
-  const zip = new AdmZip()
-  const stats = fs.statSync(absolute)
-
-  if (stats.isDirectory()) {
-    zip.addLocalFolder(absolute)
-  } else {
-    zip.addLocalFile(absolute)
+  if (!outputName || outputName.trim() === '') {
+    throw new Error('Output archive name is required')
   }
 
-  zip.writeZip(zipPath)
+  const finalOutputName = outputName.endsWith('.zip') 
+    ? outputName 
+    : `${outputName}.zip`
 
-  return {
-    compressed: zipPath,
-    name: `${outputName}.zip`,
+  const zipPath = safePath(finalOutputName)
+  if (!zipPath) {
+    throw new Error('Invalid output path')
+  }
+
+  if (fs.existsSync(zipPath)) {
+    throw new Error(`Archive already exists: ${finalOutputName}`)
+  }
+
+  const validItems: Array<{ absolute: string; name: string; isDir: boolean }> = []
+  const errors: string[] = []
+
+  for (const targetPath of paths) {
+    if (!targetPath || targetPath.trim() === '') {
+      errors.push('Empty path provided')
+      continue
+    }
+
+    const absolute = safePath(targetPath)
+    
+    if (!absolute) {
+      errors.push(`Invalid path: ${targetPath}`)
+      continue
+    }
+
+    if (!fs.existsSync(absolute)) {
+      errors.push(`Path not found: ${targetPath}`)
+      continue
+    }
+
+    const stats = fs.statSync(absolute)
+    const name = path.basename(absolute)
+
+    validItems.push({
+      absolute,
+      name,
+      isDir: stats.isDirectory()
+    })
+  }
+
+  if (validItems.length === 0) {
+    const errorMsg = errors.length > 0 
+      ? `No valid items to compress. Errors: ${errors.join(', ')}`
+      : 'No valid items to compress'
+    throw new Error(errorMsg)
+  }
+
+  if (errors.length > 0) {
+    console.warn(`Warning: ${errors.length} item(s) skipped:`, errors)
+  }
+
+  try {
+    const zip = new AdmZip()
+
+    for (const item of validItems) {
+      if (item.isDir) {
+        zip.addLocalFolder(item.absolute, item.name)
+      } else {
+        zip.addLocalFile(item.absolute)
+      }
+    }
+
+    zip.writeZip(zipPath)
+
+    const archiveStats = fs.statSync(zipPath)
+
+    return {
+      success: true,
+      output: zipPath,
+      name: finalOutputName,
+      itemCount: validItems.length,
+      totalItems: paths.length,
+      skipped: errors.length,
+      size: archiveStats.size,
+      items: validItems.map(item => ({
+        name: item.name,
+        type: item.isDir ? 'folder' : 'file'
+      }))
+    }
+
+  } catch (error: any) {
+    if (fs.existsSync(zipPath)) {
+      try {
+        fs.unlinkSync(zipPath)
+      } catch (cleanupError) {
+        console.error('Failed to cleanup partial archive:', cleanupError)
+      }
+    }
+
+    throw new Error(`Compression failed: ${error.message}`)
   }
 }

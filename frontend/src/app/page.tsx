@@ -64,7 +64,8 @@ export default function FileManager() {
   const [currentMoveFile, setCurrentMoveFile] = useState('')
   const [currentCopyFile, setCurrentCopyFile] = useState('')
 
-  const [currentCompressItem, setCurrentCompressItem] = useState('')
+  // Current compress
+  const [currentCompressItems, setCurrentCompressItems] = useState<string[]>([])
   const [compressOutputName, setCompressOutputName] = useState('')
 
   // Progress bar states
@@ -680,15 +681,24 @@ export default function FileManager() {
   }
 
   const compressSelected = () => {
-    if (selected.size !== 1) return
+    if (selected.size === 0) return
     
-    const index = [...selected][0]
-    const item = files[index]
+    // ✅ Get all selected items
+    const selectedItems = Array.from(selected).map(index => files[index].name)
     
-    // Set default output name
-    const defaultOutputName = `${item.name}.zip`
+    // ✅ Generate smart default name based on selection
+    let defaultOutputName: string
     
-    setCurrentCompressItem(item.name)
+    if (selectedItems.length === 1) {
+      // Single item: use item name + .zip
+      defaultOutputName = `${selectedItems[0]}.zip`
+    } else {
+      // Multiple items: use generic name with count
+      const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+      defaultOutputName = `archive_${selectedItems.length}_items_${timestamp}.zip`
+    }
+    
+    setCurrentCompressItems(selectedItems)
     setCompressOutputName(defaultOutputName)
     setCompressModalOpen(true)
   }
@@ -699,59 +709,81 @@ export default function FileManager() {
       return
     }
 
-    const itemPath = getFilePath(currentCompressItem)
-    const outputPath = getFilePath(compressOutputName)
+    if (currentCompressItems.length === 0) {
+      showError('No items selected')
+      return
+    }
 
     try {
       setShowProgressBar(true)
       setProgressOperation('upload')
-      setProgressMessage('Preparing to compress...')
-      setProgressFileName(currentCompressItem)
+      setProgressMessage(`Preparing to compress ${currentCompressItems.length} item(s)...`)
+      setProgressFileName(currentCompressItems[0])
       setProgressValue(0)
 
+      // ✅ Phase 1: Preparation (0% → 20%)
       let currentProgress = 0
       const phase1Interval = setInterval(() => {
         currentProgress += 2
-        if (currentProgress >= 30) {
+        if (currentProgress >= 20) {
           clearInterval(phase1Interval)
-          setProgressMessage('Compressing...')
+          setProgressMessage(`Compressing ${currentCompressItems.length} item(s)...`)
         }
         setProgressValue(currentProgress)
       }, 50)
 
-      await new Promise(resolve => setTimeout(resolve, 750))
+      await new Promise(resolve => setTimeout(resolve, 500))
 
-      const phase2Interval = setInterval(() => {
-        currentProgress += 1.5
-        if (currentProgress >= 85) {
-          clearInterval(phase2Interval)
-        }
-        setProgressValue(currentProgress)
-      }, 100)
+      // ✅ Phase 2: Compression per item (20% → 80%)
+      clearInterval(phase1Interval)
+      const progressPerItem = 60 / currentCompressItems.length
+      
+      for (let i = 0; i < currentCompressItems.length; i++) {
+        const item = currentCompressItems[i]
+        setProgressFileName(item)
+        
+        const itemPath = getFilePath(item)
+        
+        // ✅ For multi-select, we need to call backend with all paths
+        // Backend should handle multiple items compression
+        // This is just progress simulation
+        
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        currentProgress += progressPerItem
+        setProgressValue(Math.min(currentProgress, 80))
+      }
 
-      // API Call
+      // ✅ Phase 3: API Call
+      setProgressMessage('Creating archive...')
+      setProgressValue(85)
+
+      const outputPath = getFilePath(compressOutputName)
+      
+      // ✅ Send array of paths to backend
+      const itemPaths = currentCompressItems.map(item => getFilePath(item))
+
       const res = await fetch(`${API_BASE}/api/compress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          path: itemPath,
+          paths: itemPaths,    // ✅ Changed from 'path' to 'paths' (array)
           output: outputPath
         })
       })
-
-      clearInterval(phase2Interval)
 
       const data = await res.json()
       
       if (data.error) throw new Error(data.error)
 
+      // ✅ Phase 4: Finalization (85% → 100%)
       setProgressMessage('Finalizing...')
       const finalInterval = setInterval(() => {
         currentProgress += 5
         if (currentProgress >= 100) {
           clearInterval(finalInterval)
           setProgressValue(100)
-          setProgressMessage('Compression completed!')
+          setProgressMessage(`Successfully compressed ${currentCompressItems.length} item(s)!`)
         } else {
           setProgressValue(currentProgress)
         }
@@ -761,7 +793,11 @@ export default function FileManager() {
         setShowProgressBar(false)
         setProgressValue(0)
         setCompressModalOpen(false)
-        showSuccess(`Compressed successfully: ${compressOutputName}`)
+        showSuccess(
+          currentCompressItems.length === 1 
+            ? `Compressed successfully: ${compressOutputName}`
+            : `Compressed ${currentCompressItems.length} items into: ${compressOutputName}`
+        )
         loadFiles(currentPath)
       }, 2000)
 
@@ -1043,7 +1079,8 @@ export default function FileManager() {
       {/* Modal Compress File & Folder selected */}
       <CompressModal
         isOpen={compressModalOpen}
-        currentItem={currentCompressItem}
+        currentItems={currentCompressItems}
+        itemCount={currentCompressItems.length}
         outputName={compressOutputName}
         onClose={() => setCompressModalOpen(false)}
         onOutputChange={setCompressOutputName}
