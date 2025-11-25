@@ -59,7 +59,11 @@ app.post('/api/save', async (c: Context) => {
 
 app.get('/api/download', async (c: Context) => {
   try {
-    const { stream, name } = controller.downloadFile(c.req.query('path'))
+    const path = c.req.query('path')
+    if (!path) {
+      return c.json({ error: 'missing path query' }, 400)
+    }
+    const { stream, name } = controller.downloadFile(path)
     return c.body(stream, 200, {
       'Content-Disposition': `attachment; filename="${name}"`
     })
