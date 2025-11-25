@@ -120,6 +120,16 @@ app.post('/api/extract', async (c: Context) => {
   }
 })
 
+app.post('/api/compress', async (c: Context) => {
+  try {
+    const { path, output } = await c.req.json()
+    const result = await controller.compressItem(path, output)
+    return c.json({ ok: true, ...result })
+  } catch (e: any) {
+    return handleError(c, e)
+  }
+})
+
 app.get('/storage/*', async (c: Context) => {
   try {
     const { stream } = controller.downloadFile(c.req.param('0'))
