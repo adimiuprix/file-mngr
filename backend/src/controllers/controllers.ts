@@ -1,4 +1,5 @@
 import fs from 'fs/promises'
+import { Stats } from 'fs'
 import path from 'path'
 import decompress from 'decompress'
 import type { FileInfo, FileListResponse, FileContentResponse, ExtractResponse } from './types'
@@ -92,10 +93,10 @@ export const extractArchive = async (
   if (!filePath) throw new Error('invalid path')
 
   // Cek keberadaan file via try/catch, bukan existsSync
-  let stat: fs.Stats
+  let stat: Stats
   try {
     stat = await fs.stat(filePath)
-  } catch {
+  } catch (err) {
     throw new Error('file not found')
   }
   if (!stat.isFile()) throw new Error('not a file')
