@@ -3,6 +3,7 @@ import path from 'path'
 import decompress from 'decompress'
 import type { FileInfo, FileListResponse, FileContentResponse, ExtractResponse } from './types'
 
+// Tentukan root path nya
 const STORAGE = 'C:\\My Web Sites'
 
 export function safePath(rel: string): string | null {
